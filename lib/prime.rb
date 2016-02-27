@@ -29,15 +29,15 @@ class Integer
   def prime_division(generator = Prime::Generator23.new)
     Prime.prime_division(self, generator)
   end
-  # Returns +b+ ** +x+ mod +m+
+  # Returns +b+ ** +m+ % +m+
   def powmod(b, x, m)
-    result = 1
+    r = 1
     while x > 0
-      result = (result * b) % m if x & 1 == 1
+      r = (r * b) % m if x & 1 == 1
       b = (b * b) % m
       x >>= 1;
     end
-    result
+    r
   end
   # Returns true if +self+ passes Miller-Rabin Test on +b+
   def miller_rabin_test(b)
@@ -66,7 +66,7 @@ class Integer
       return false if miller_rabin_test(ix) == false
       break if self < mx
     end
-    true
+    return miller_rabin_test(41)
   end
   # Returns the smallest prime number which is greater than +self+
   def next_prime
@@ -200,7 +200,8 @@ class Prime
   #   Upper bound of prime numbers. The iterator stops after it
   #   yields all prime numbers p <= +ubound+.
   #
-  def each(ubound = nil, generator = EratosthenesGenerator.new, &block)
+  #def each(ubound = nil, generator = EratosthenesGenerator.new, &block)
+  def each(ubound = nil, generator = NextPrimeGenerator.new, &block)
     generator.upper_bound = ubound
     generator.each(&block)
   end
@@ -368,6 +369,24 @@ class Prime
     def size
       Float::INFINITY
     end
+  end
+
+  # An implementation of +PseudoPrimeGenerator+.
+  #
+  # Uses Integer#next_prime
+  class NextPrimeGenerator < PseudoPrimeGenerator
+    def initialize
+      @current_prime = -1
+      super
+    end
+    def succ
+      @current_prime = @current_prime.next_prime
+      @current_prime
+    end
+    def rewind
+      initialize
+    end
+    alias next succ
   end
 
   # An implementation of +PseudoPrimeGenerator+.
