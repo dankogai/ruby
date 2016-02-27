@@ -29,19 +29,67 @@ class Integer
   def prime_division(generator = Prime::Generator23.new)
     Prime.prime_division(self, generator)
   end
-
+  # Returns +b+ ** +x+ mod +m+
+  def powmod(b, x, m)
+    result = 1
+    while x > 0
+      result = (result * b) % m if x & 1 == 1
+      b = (b * b) % m
+      x >>= 1;
+    end
+    result
+  end
+  # Returns true if +self+ passes Miller-Rabin Test on +b+
+  def miller_rabin_test(b)
+    return false if self < 2
+    return self == 2 if self & 1 == 0
+    d = self - 1
+    d >>= 1 while d & 1 == 0
+    t = d
+    y = powmod(b, t, self)
+    while t != self-1 && y != 1 && y != self-1
+      y = (y * y) % self
+      t <<= 1
+    end
+    return false if y != self-1 && t & 1 == 0
+    true
+  end
   # Returns true if +self+ is a prime number, else returns false.
   def prime?
-    return self >= 2 if self <= 3
-    return false if self % 2 == 0 or self % 3 == 0
-    (5..(self**0.5).floor).step(6).each do |i|
-      if self % i == 0 || self % (i + 2) == 0
-        return false
-      end
+    return false if self < 2
+    return self == 2 if self & 1 == 0
+    return self == 3 if self % 3 == 0
+    return self == 5 if self % 5 == 0
+    return self == 7 if self % 7 == 0
+    Prime::A014233.each do |pair|
+      ix, mx = pair
+      return false if miller_rabin_test(ix) == false
+      break if self < mx
     end
     true
   end
-
+  # Returns the smallest prime number which is greater than +self+
+  def next_prime
+    return 2 if self < 2
+    n = self
+    n += if n & 1 == 0 then 1 else 2 end
+    while !n.prime?
+      n += 2
+    end
+    return n
+  end
+  # Returns the largest prime number which is smaller than +self+
+  # or +nil+ if +self+ <= 2
+  def prev_prime
+    return nil if self <= 2
+    return   2 if self == 3
+    n = self
+    n -= if n & 1 == 0 then 1 else 2 end
+    while !n.prime?
+      n -= 2
+    end
+    return n
+  end
   # Iterates the given block over all prime numbers.
   #
   # See +Prime+#each for more details.
@@ -96,6 +144,26 @@ end
 class Prime
   include Enumerable
   include Singleton
+
+  # https://oeis.org/A014233
+  #
+  # Smallest odd number for which Miller-Rabin primality test
+  # on bases <= n-th prime does not reveal compositeness.
+  #
+  A014233 = {
+    2 => 2047,
+    3 => 1373653,
+    5 => 25326001,
+    7 => 3215031751,
+    11 => 2152302898747,
+    13 => 3474749660383,
+    17 => 341550071728321,
+    19 => 341550071728321,
+    23 => 3825123056546413051,
+    29 => 3825123056546413051,
+    31 => 3825123056546413051,
+    37 => 318665857834031151167461
+  }
 
   class << self
     extend Forwardable
